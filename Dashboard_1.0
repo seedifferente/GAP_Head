@@ -1,0 +1,215 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
+  AreaChart, Area, BarChart, Bar, Cell, ComposedChart
+} from 'recharts';
+import { 
+  TrendingUp, TrendingDown, AlertTriangle, Target, Calendar, 
+  ArrowUpRight, ArrowDownRight, Activity, PieChart, Info
+} from 'lucide-react';
+
+// DATOS REALES PROCESADOS DESDE EL ARCHIVO (2021-01 a 2026-04)
+const rawData = [
+  {"fecha": "2021-01", "a_b": 147.14, "sin": 505.49, "estr_a": 149.43, "estr_b": -2.29, "ur": 1.29}, {"fecha": "2021-02", "a_b": 1130.04, "sin": 1574.51, "estr_a": 302.37, "estr_b": 827.67, "ur": 0.71}, {"fecha": "2021-03", "a_b": 1383.34, "sin": 454.77, "estr_a": 555.67, "estr_b": 827.67, "ur": 0.87}, {"fecha": "2021-04", "a_b": 1708.7, "sin": 351.09, "estr_a": 530.55, "estr_b": 1178.15, "ur": 2.17}, {"fecha": "2021-05", "a_b": 1612.73, "sin": -721.84, "estr_a": 726.69, "estr_b": 886.03, "ur": 3.83}, {"fecha": "2021-06", "a_b": 1598.47, "sin": -460.92, "estr_a": 717.3, "estr_b": 881.17, "ur": 1.17}, {"fecha": "2021-07", "a_b": 1409.56, "sin": -562.56, "estr_a": 844.93, "estr_b": 564.63, "ur": 5.13}, {"fecha": "2021-08", "a_b": 1423.72, "sin": -597.99, "estr_a": 913.25, "estr_b": 510.47, "ur": 0.07}, {"fecha": "2021-09", "a_b": 737.36, "sin": -92.91, "estr_a": 608.32, "estr_b": 129.05, "ur": 1.84}, {"fecha": "2021-10", "a_b": 1041.06, "sin": -649.05, "estr_a": 912.01, "estr_b": 129.05, "ur": 3.13}, {"fecha": "2021-11", "a_b": 267.64, "sin": -354.81, "estr_a": 493.64, "estr_b": -226.0, "ur": 2.06}, {"fecha": "2021-12", "a_b": 523.13, "sin": -1862.67, "estr_a": 912.54, "estr_b": -389.41, "ur": 0.54}, {"fecha": "2022-01", "a_b": 833.81, "sin": -3051.12, "estr_a": 1509.48, "estr_b": -675.67, "ur": 0.18}, {"fecha": "2022-02", "a_b": 3688.25, "sin": -481.35, "estr_a": 1659.98, "estr_b": 2028.27, "ur": 2.25}, {"fecha": "2022-03", "a_b": 3404.62, "sin": -1860.23, "estr_a": 1376.34, "estr_b": 2028.27, "ur": 0.62}, {"fecha": "2022-04", "a_b": 3523.75, "sin": -4246.35, "estr_a": 1728.47, "estr_b": 1795.28, "ur": 1.37}, {"fecha": "2022-05", "a_b": 5227.8, "sin": -5398.98, "estr_a": 3239.97, "estr_b": 1987.83, "ur": 0.85}, {"fecha": "2022-06", "a_b": 6280.4, "sin": -5416.85, "estr_a": 4345.98, "estr_b": 1934.42, "ur": 4.12}, {"fecha": "2022-07", "a_b": 7343.08, "sin": -5932.42, "estr_a": 5408.67, "estr_b": 1934.42, "ur": 0.67}, {"fecha": "2022-08", "a_b": 7805.13, "sin": -5608.46, "estr_a": 5764.96, "estr_b": 2040.17, "ur": 0.82}, {"fecha": "2022-09", "a_b": 8882.4, "sin": -4946.86, "estr_a": 7050.97, "estr_b": 1831.43, "ur": 0.51}, {"fecha": "2022-10", "a_b": 9434.84, "sin": -3574.83, "estr_a": 7861.09, "estr_b": 1573.75, "ur": 1.02}, {"fecha": "2022-11", "a_b": 11836.79, "sin": -1717.55, "estr_a": 7718.44, "estr_b": 4118.35, "ur": 0.21}, {"fecha": "2022-12", "a_b": 15414.25, "sin": -1265.29, "estr_a": 8612.91, "estr_b": 6801.35, "ur": 2.05}, {"fecha": "2023-01", "a_b": 14996.77, "sin": -1032.85, "estr_a": 8628.76, "estr_b": 6368.02, "ur": 0.4}, {"fecha": "2023-02", "a_b": 16042.24, "sin": -449.61, "estr_a": 8566.2, "estr_b": 7476.04, "ur": 0.39}, {"fecha": "2023-03", "a_b": 16765.08, "sin": -1783.99, "estr_a": 9557.82, "estr_b": 7207.26, "ur": 1.36}, {"fecha": "2023-04", "a_b": 17328.09, "sin": -681.84, "estr_a": 9612.25, "estr_b": 7715.83, "ur": 0.58}, {"fecha": "2023-05", "a_b": 17362.4, "sin": -1116.86, "estr_a": 9642.54, "estr_b": 7719.86, "ur": 1.87}, {"fecha": "2023-06", "a_b": 17732.88, "sin": -1700.41, "estr_a": 9877.67, "estr_b": 7855.21, "ur": 4.61}, {"fecha": "2023-07", "a_b": 18599.02, "sin": -1392.31, "estr_a": 10196.64, "estr_b": 8402.38, "ur": 0.32}, {"fecha": "2023-08", "a_b": 18543.93, "sin": -1240.95, "estr_a": 10244.35, "estr_b": 8299.58, "ur": 0.78}, {"fecha": "2023-09", "a_b": 19078.46, "sin": -670.3, "estr_a": 10096.54, "estr_b": 8981.92, "ur": 2.26}, {"fecha": "2023-10", "a_b": 19661.11, "sin": -737.62, "estr_a": 10679.19, "estr_b": 8981.92, "ur": 0.49}, {"fecha": "2023-11", "a_b": 19752.53, "sin": -1116.36, "estr_a": 10939.57, "estr_b": 8812.96, "ur": 0.77}, {"fecha": "2023-12", "a_b": 19319.19, "sin": -717.86, "estr_a": 10506.23, "estr_b": 8812.96, "ur": 0.38}, {"fecha": "2024-01", "a_b": 19079.94, "sin": -359.99, "estr_a": 10409.59, "estr_b": 8670.34, "ur": 5.38}, {"fecha": "2024-02", "a_b": 18685.5, "sin": -1136.34, "estr_a": 10388.11, "estr_b": 8297.38, "ur": 3.46}, {"fecha": "2024-03", "a_b": 18003.66, "sin": -1301.39, "estr_a": 10138.1, "estr_b": 7865.56, "ur": -0.02}, {"fecha": "2024-04", "a_b": 18475.26, "sin": -193.99, "estr_a": 10009.13, "estr_b": 8466.13, "ur": 1.6}, {"fecha": "2024-05", "a_b": 18481.48, "sin": 699.56, "estr_a": 10031.8, "estr_b": 8449.68, "ur": 0.93}, {"fecha": "2024-06", "a_b": 18440.93, "sin": 825.97, "estr_a": 10225.41, "estr_b": 8215.52, "ur": 1.18}, {"fecha": "2024-07", "a_b": 18388.47, "sin": -53.49, "estr_a": 10478.11, "estr_b": 7910.36, "ur": 3.09}, {"fecha": "2024-08", "a_b": 20463.2, "sin": -715.33, "estr_a": 11275.4, "estr_b": 9187.8, "ur": 1.43}, {"fecha": "2024-09", "a_b": 20331.56, "sin": -902.61, "estr_a": 11120.1, "estr_b": 9211.47, "ur": 1.0}, {"fecha": "2024-10", "a_b": 21370.86, "sin": -616.85, "estr_a": 11457.14, "estr_b": 9913.72, "ur": 4.17}, {"fecha": "2024-11", "a_b": 21234.81, "sin": -868.88, "estr_a": 11718.83, "estr_b": 9515.98, "ur": 0.77}, {"fecha": "2024-12", "a_b": 20955.0, "sin": -573.49, "estr_a": 11854.74, "estr_b": 9100.26, "ur": 0.87}, {"fecha": "2025-01", "a_b": 20934.72, "sin": -638.99, "estr_a": 12101.18, "estr_b": 8833.54, "ur": 1.58}, {"fecha": "2025-02", "a_b": 22020.41, "sin": 572.07, "estr_a": 11868.02, "estr_b": 10152.4, "ur": 0.13}, {"fecha": "2025-03", "a_b": 21707.77, "sin": 204.77, "estr_a": 11859.78, "estr_b": 9847.99, "ur": 2.03}, {"fecha": "2025-04", "a_b": 21181.87, "sin": 147.91, "estr_a": 13399.39, "estr_b": 7782.48, "ur": 3.81}, {"fecha": "2025-05", "a_b": 23336.49, "sin": 1909.74, "estr_a": 13039.72, "estr_b": 10296.77, "ur": 0.58}, {"fecha": "2025-06", "a_b": 23475.41, "sin": 2110.52, "estr_a": 13360.19, "estr_b": 10115.22, "ur": 1.68}, {"fecha": "2025-07", "a_b": 23392.44, "sin": 2793.62, "estr_a": 13277.22, "estr_b": 10115.22, "ur": 3.15}, {"fecha": "2025-08", "a_b": 23789.31, "sin": 2484.91, "estr_a": 13674.09, "estr_b": 10115.22, "ur": 1.28}, {"fecha": "2025-09", "a_b": 23267.36, "sin": 2383.2, "estr_a": 13429.55, "estr_b": 9837.81, "ur": 0.78}, {"fecha": "2025-10", "a_b": 23411.18, "sin": 2427.93, "estr_a": 14057.43, "estr_b": 9353.75, "ur": 3.26}, {"fecha": "2025-11", "a_b": 22915.71, "sin": 1977.14, "estr_a": 13734.48, "estr_b": 9181.24, "ur": 0.85}, {"fecha": "2025-12", "a_b": 23298.02, "sin": 1856.1, "estr_a": 13737.74, "estr_b": 9560.28, "ur": 0.11}, {"fecha": "2026-01", "a_b": 22969.65, "sin": 1858.74, "estr_a": 13566.85, "estr_b": 9402.8, "ur": 0.7}, {"fecha": "2026-02", "a_b": 22884.09, "sin": 2868.63, "estr_a": 13481.29, "estr_b": 9402.8, "ur": 2.71}, {"fecha": "2026-03", "a_b": 23729.54, "sin": 2633.97, "estr_a": 14162.2, "estr_b": 9567.34, "ur": 2.48}, {"fecha": "2026-04", "a_b": 24721.05, "sin": 3083.2, "estr_a": 14086.63, "estr_b": 10634.43, "ur": 0.75}
+];
+
+// Métricas exactas pre-calculadas por año para asegurar el rendimiento del Dashboard
+const yearlyMetrics = {
+  "Todos": { totalProfit: "24,721.05", profitFactor: "1.61", winRate: "21.39%", maxDrawdown: "-8.4%", efficiencyBoost: "+801.8%", bestTrade: "+19.75%", worstTrade: "-5.80%", avgWin: "+2.30%", avgLoss: "-1.00%", dias: "1,323" },
+  "2021": { totalProfit: "523.13", profitFactor: "1.07", winRate: "19.44%", maxDrawdown: "-7.9%", efficiencyBoost: "-28.1%", bestTrade: "+5.10%", worstTrade: "-3.07%", avgWin: "+1.60%", avgLoss: "-0.82%", dias: "252" },
+  "2022": { totalProfit: "14,891.12", profitFactor: "2.78", winRate: "28.29%", maxDrawdown: "-3.2%", efficiencyBoost: "+2492.7%", bestTrade: "+19.75%", worstTrade: "-4.88%", avgWin: "+3.27%", avgLoss: "-1.47%", dias: "251" },
+  "2023": { totalProfit: "3,904.94", profitFactor: "1.58", winRate: "22.00%", maxDrawdown: "-3.7%", efficiencyBoost: "+713.3%", bestTrade: "+9.33%", worstTrade: "-4.19%", avgWin: "+1.93%", avgLoss: "-0.90%", dias: "250" },
+  "2024": { totalProfit: "1,635.81", profitFactor: "1.24", winRate: "19.84%", maxDrawdown: "-6.1%", efficiencyBoost: "+1133.1%", bestTrade: "+15.00%", worstTrade: "-3.48%", avgWin: "+1.70%", avgLoss: "-0.86%", dias: "247" },
+  "2025": { totalProfit: "2,343.01", profitFactor: "1.26", winRate: "17.20%", maxDrawdown: "-6.5%", efficiencyBoost: "+96.4%", bestTrade: "+12.95%", worstTrade: "-5.80%", avgWin: "+2.63%", avgLoss: "-1.15%", dias: "250" },
+  "2026": { totalProfit: "1,423.04", profitFactor: "1.60", winRate: "21.92%", maxDrawdown: "-2.5%", efficiencyBoost: "+116.0%", bestTrade: "+10.10%", worstTrade: "-3.88%", avgWin: "+2.37%", avgLoss: "-0.88%", dias: "73" }
+};
+
+const KpiCard = ({ title, value, subtext, icon: Icon, color }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between transition-all duration-300 hover:shadow-md">
+    <div>
+      <p className="text-slate-500 text-sm font-medium mb-1">{title}</p>
+      <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
+      <p className={`text-xs mt-2 flex items-center ${subtext.includes('+') ? 'text-emerald-600' : 'text-slate-400'}`}>
+        {subtext}
+      </p>
+    </div>
+    <div className={`p-3 rounded-xl ${color} transition-colors`}>
+      <Icon size={20} className="text-white" />
+    </div>
+  </div>
+);
+
+const App = () => {
+  const [selectedYear, setSelectedYear] = useState('Todos');
+  const metrics = yearlyMetrics[selectedYear];
+
+  // Cálculo de P&L para los gráficos (dinámico según el año)
+  const pnlData = useMemo(() => {
+    const data = [];
+    for (let i = 1; i < rawData.length; i++) {
+      data.push({
+        fecha: rawData[i].fecha,
+        pnl: rawData[i].a_b - rawData[i-1].a_b // Resultado neto del mes
+      });
+    }
+    
+    // Si se selecciona un año, mostramos todos sus meses. Si es "Todos", solo los últimos 12 por limpieza visual.
+    if (selectedYear === 'Todos') {
+      return data.slice(-12);
+    } else {
+      return data.filter(item => item.fecha.startsWith(selectedYear));
+    }
+  }, [selectedYear]);
+
+  const filteredChartData = useMemo(() => {
+    if (selectedYear === 'Todos') return rawData;
+    return rawData.filter(item => item.fecha.startsWith(selectedYear));
+  }, [selectedYear]);
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 border border-slate-100 shadow-xl rounded-lg z-50">
+          <p className="text-sm font-bold text-slate-600 mb-2">{label}</p>
+          {payload.map((entry, index) => (
+            <div key={index} className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="text-xs text-slate-500">{entry.name}:</span>
+              <span className="text-xs font-bold text-slate-900">
+                {typeof entry.value === 'number' ? entry.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : entry.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const yearsOptions = ['Todos', '2021', '2022', '2023', '2024', '2025', '2026'];
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+      
+      {/* HEADER & GLOBAL FILTERS */}
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+            <div className="bg-indigo-600 p-2 rounded-lg">
+              <TrendingUp className="text-white" />
+            </div>
+            GAP INVESTOR <span className="text-indigo-600 font-light">PRO</span>
+          </h1>
+          <p className="text-slate-500 mt-1">Dashboard Realizado con Historial Completo • 2021-2026 • {metrics.dias} Días Operativos</p>
+        </div>
+        
+        {/* FILTROS MOVIDOS A LA PARTE SUPERIOR */}
+        <div className="flex flex-wrap gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+          {yearsOptions.map(year => (
+            <button 
+              key={year} 
+              onClick={() => setSelectedYear(year)} 
+              className={`px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 ${
+                selectedYear === year 
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+              }`}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI CARDS (Dinámicos por Año) */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <KpiCard title={`Beneficio (${selectedYear})`} value={selectedYear === 'Todos' ? `$${metrics.totalProfit}` : metrics.totalProfit} subtext={`${metrics.efficiencyBoost} vs Sin Estrategia`} icon={ArrowUpRight} color="bg-emerald-500"/>
+        <KpiCard title="Profit Factor" value={metrics.profitFactor} subtext="Ventaja Estadística Real" icon={Activity} color="bg-indigo-500"/>
+        <KpiCard title="Win Rate" value={metrics.winRate} subtext="Consistencia Diaria" icon={Target} color="bg-amber-500"/>
+        <KpiCard title="Max Drawdown" value={metrics.maxDrawdown} subtext="Riesgo Histórico (Solo A+B)" icon={AlertTriangle} color="bg-rose-500"/>
+      </div>
+
+      {/* BADGES / INSIGNIAS (Dinámicas por Año) */}
+      <div className="max-w-7xl mx-auto flex flex-wrap gap-4 mb-6 transition-all duration-300">
+        <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm">
+          <TrendingUp size={18} /> Mejor Operación: {metrics.bestTrade}
+        </div>
+        <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm">
+          <ArrowUpRight size={18} /> Ganancia Promedio: {metrics.avgWin}
+        </div>
+        <div className="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm">
+          <TrendingDown size={18} /> Peor Operación: {metrics.worstTrade}
+        </div>
+        <div className="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm">
+          <ArrowDownRight size={18} /> Pérdida Promedio: {metrics.avgLoss}
+        </div>
+      </div>
+
+      {/* CHARTS */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Curva de Equidad */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+          <div className="flex flex-col xl:flex-row xl:items-start justify-between mb-6 gap-6">
+            <h3 className="font-bold text-lg text-slate-800 mb-3">
+              Curva de Equidad Acumulada {selectedYear !== 'Todos' ? `(${selectedYear})` : 'Real'}
+            </h3>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium xl:justify-end">
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-600"/> A+B</div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"/> Estrategia A</div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-amber-500"/> Estrategia B</div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-400"/> Sin</div>
+            </div>
+          </div>
+          <div className="flex-grow min-h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={filteredChartData}>
+                <defs>
+                  <linearGradient id="colorAb" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15}/><stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11}} dy={10} minTickGap={30}/>
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11}} tickFormatter={(val) => `$${Math.round(val/1000)}k`}/>
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="a_b" name="A+B" stroke="#4f46e5" strokeWidth={3} fill="url(#colorAb)" />
+                <Line type="monotone" dataKey="estr_a" name="A" stroke="#10b981" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="estr_b" name="B" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="sin" name="Sin" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gráfico P&L Dinámico */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+          <h3 className="font-bold text-lg text-slate-800 mb-2">Ganancias y Pérdidas (P&L)</h3>
+          <p className="text-slate-400 text-xs mb-6">
+            Retorno Neto Mensual • {selectedYear === 'Todos' ? 'Últimos 12 Meses' : `Año ${selectedYear}`}
+          </p>
+          <div className="flex-grow min-h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={pnlData} layout="vertical">
+                <XAxis type="number" hide />
+                <YAxis dataKey="fecha" type="category" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}}/>
+                <Tooltip 
+                  cursor={{fill: '#f8fafc'}}
+                  formatter={(value) => [`$${Number(value).toFixed(2)}`, 'P&L Neto']}
+                />
+                <Bar dataKey="pnl" name="P&L Neto" radius={[0, 4, 4, 0]}>
+                  {pnlData.map((entry, index) => (
+                    <Cell key={index} fill={entry.pnl >= 0 ? '#10b981' : '#f43f5e'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default App;
