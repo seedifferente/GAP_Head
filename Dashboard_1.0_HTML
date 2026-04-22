@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard GAP Investor PRO</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Estilos adicionales para asegurar que las gráficas se ajusten bien */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px; /* Gráficas un poco más pequeñas en móviles */
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+
+    <!-- HEADER & GLOBAL FILTERS -->
+    <div class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i data-lucide="trending-up" class="text-white w-6 h-6"></i>
+                </div>
+                GAP INVESTOR <span class="text-indigo-600 font-light">PRO</span>
+            </h1>
+            <p class="text-slate-500 mt-1" id="header-subtitle">Dashboard Realizado con Historial Completo • 2021-2026 • 1,323 Días Operativos</p>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100" id="filter-container">
+            <!-- Botones generados dinámicamente -->
+        </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <!-- Beneficio -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between transition-all duration-300 hover:shadow-md">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1" id="lbl-beneficio">Beneficio (Todos)</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-beneficio">$24,721.05</h3>
+                <p class="text-xs mt-2 flex items-center text-emerald-600" id="sub-beneficio">+801.8% vs Sin Estrategia</p>
+            </div>
+            <div class="p-3 rounded-xl bg-emerald-500 transition-colors">
+                <i data-lucide="arrow-up-right" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Profit Factor -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between transition-all duration-300 hover:shadow-md">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1">Profit Factor</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-profit-factor">1.61</h3>
+                <p class="text-xs mt-2 flex items-center text-slate-400">Ventaja Estadística Real</p>
+            </div>
+            <div class="p-3 rounded-xl bg-indigo-500 transition-colors">
+                <i data-lucide="activity" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Win Rate -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between transition-all duration-300 hover:shadow-md">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1">Win Rate</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-win-rate">21.39%</h3>
+                <p class="text-xs mt-2 flex items-center text-slate-400">Consistencia Diaria</p>
+            </div>
+            <div class="p-3 rounded-xl bg-amber-500 transition-colors">
+                <i data-lucide="target" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+
+        <!-- Max Drawdown -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between transition-all duration-300 hover:shadow-md">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1">Max Drawdown</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-drawdown">-8.4%</h3>
+                <p class="text-xs mt-2 flex items-center text-slate-400">Riesgo Histórico (Solo A+B)</p>
+            </div>
+            <div class="p-3 rounded-xl bg-rose-500 transition-colors">
+                <i data-lucide="alert-triangle" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- BADGES / INSIGNIAS -->
+    <div class="max-w-7xl mx-auto flex flex-wrap gap-4 mb-6 transition-all duration-300">
+        <div class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm w-full sm:w-auto justify-center">
+            <i data-lucide="trending-up" class="w-4 h-4"></i> Mejor Operación: <span id="val-best-trade">+19.75%</span>
+        </div>
+        <div class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm w-full sm:w-auto justify-center">
+            <i data-lucide="arrow-up-right" class="w-4 h-4"></i> Ganancia Promedio: <span id="val-avg-win">+2.30%</span>
+        </div>
+        <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm w-full sm:w-auto justify-center">
+            <i data-lucide="trending-down" class="w-4 h-4"></i> Peor Operación: <span id="val-worst-trade">-5.80%</span>
+        </div>
+        <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm w-full sm:w-auto justify-center">
+            <i data-lucide="arrow-down-right" class="w-4 h-4"></i> Pérdida Promedio: <span id="val-avg-loss">-1.00%</span>
+        </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+        
+        <!-- Curva de Equidad -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+            <div class="flex flex-col xl:flex-row xl:items-start justify-between mb-6 gap-4">
+                <h3 class="font-bold text-lg text-slate-800" id="title-main-chart">Curva de Equidad Acumulada Real</h3>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium xl:justify-end">
+                    <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full bg-indigo-600"></div> A+B</div>
+                    <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> Estrategia A</div>
+                    <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full bg-amber-500"></div> Estrategia B</div>
+                    <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full bg-slate-400"></div> Sin</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico P&L Dinámico -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+            <h3 class="font-bold text-lg text-slate-800 mb-2">Ganancias y Pérdidas (P&L)</h3>
+            <p class="text-slate-400 text-xs mb-6" id="title-pnl-chart">Retorno Neto Mensual • Últimos 12 Meses</p>
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="pnlChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // INICIALIZACIÓN DE ICONOS LUCIDE
+        lucide.createIcons();
+
+        // DATOS REALES
+        const rawData = [
+            {"fecha": "2021-01", "a_b": 147.14, "sin": 505.49, "estr_a": 149.43, "estr_b": -2.29}, 
+            {"fecha": "2021-02", "a_b": 1130.04, "sin": 1574.51, "estr_a": 302.37, "estr_b": 827.67}, 
+            {"fecha": "2021-03", "a_b": 1383.34, "sin": 454.77, "estr_a": 555.67, "estr_b": 827.67}, 
+            {"fecha": "2021-04", "a_b": 1708.7, "sin": 351.09, "estr_a": 530.55, "estr_b": 1178.15}, 
+            {"fecha": "2021-05", "a_b": 1612.73, "sin": -721.84, "estr_a": 726.69, "estr_b": 886.03}, 
+            {"fecha": "2021-06", "a_b": 1598.47, "sin": -460.92, "estr_a": 717.3, "estr_b": 881.17}, 
+            {"fecha": "2021-07", "a_b": 1409.56, "sin": -562.56, "estr_a": 844.93, "estr_b": 564.63}, 
+            {"fecha": "2021-08", "a_b": 1423.72, "sin": -597.99, "estr_a": 913.25, "estr_b": 510.47}, 
+            {"fecha": "2021-09", "a_b": 737.36, "sin": -92.91, "estr_a": 608.32, "estr_b": 129.05}, 
+            {"fecha": "2021-10", "a_b": 1041.06, "sin": -649.05, "estr_a": 912.01, "estr_b": 129.05}, 
+            {"fecha": "2021-11", "a_b": 267.64, "sin": -354.81, "estr_a": 493.64, "estr_b": -226.0}, 
+            {"fecha": "2021-12", "a_b": 523.13, "sin": -1862.67, "estr_a": 912.54, "estr_b": -389.41}, 
+            {"fecha": "2022-01", "a_b": 833.81, "sin": -3051.12, "estr_a": 1509.48, "estr_b": -675.67}, 
+            {"fecha": "2022-02", "a_b": 3688.25, "sin": -481.35, "estr_a": 1659.98, "estr_b": 2028.27}, 
+            {"fecha": "2022-03", "a_b": 3404.62, "sin": -1860.23, "estr_a": 1376.34, "estr_b": 2028.27}, 
+            {"fecha": "2022-04", "a_b": 3523.75, "sin": -4246.35, "estr_a": 1728.47, "estr_b": 1795.28}, 
+            {"fecha": "2022-05", "a_b": 5227.8, "sin": -5398.98, "estr_a": 3239.97, "estr_b": 1987.83}, 
+            {"fecha": "2022-06", "a_b": 6280.4, "sin": -5416.85, "estr_a": 4345.98, "estr_b": 1934.42}, 
+            {"fecha": "2022-07", "a_b": 7343.08, "sin": -5932.42, "estr_a": 5408.67, "estr_b": 1934.42}, 
+            {"fecha": "2022-08", "a_b": 7805.13, "sin": -5608.46, "estr_a": 5764.96, "estr_b": 2040.17}, 
+            {"fecha": "2022-09", "a_b": 8882.4, "sin": -4946.86, "estr_a": 7050.97, "estr_b": 1831.43}, 
+            {"fecha": "2022-10", "a_b": 9434.84, "sin": -3574.83, "estr_a": 7861.09, "estr_b": 1573.75}, 
+            {"fecha": "2022-11", "a_b": 11836.79, "sin": -1717.55, "estr_a": 7718.44, "estr_b": 4118.35}, 
+            {"fecha": "2022-12", "a_b": 15414.25, "sin": -1265.29, "estr_a": 8612.91, "estr_b": 6801.35}, 
+            {"fecha": "2023-01", "a_b": 14996.77, "sin": -1032.85, "estr_a": 8628.76, "estr_b": 6368.02}, 
+            {"fecha": "2023-02", "a_b": 16042.24, "sin": -449.61, "estr_a": 8566.2, "estr_b": 7476.04}, 
+            {"fecha": "2023-03", "a_b": 16765.08, "sin": -1783.99, "estr_a": 9557.82, "estr_b": 7207.26}, 
+            {"fecha": "2023-04", "a_b": 17328.09, "sin": -681.84, "estr_a": 9612.25, "estr_b": 7715.83}, 
+            {"fecha": "2023-05", "a_b": 17362.4, "sin": -1116.86, "estr_a": 9642.54, "estr_b": 7719.86}, 
+            {"fecha": "2023-06", "a_b": 17732.88, "sin": -1700.41, "estr_a": 9877.67, "estr_b": 7855.21}, 
+            {"fecha": "2023-07", "a_b": 18599.02, "sin": -1392.31, "estr_a": 10196.64, "estr_b": 8402.38}, 
+            {"fecha": "2023-08", "a_b": 18543.93, "sin": -1240.95, "estr_a": 10244.35, "estr_b": 8299.58}, 
+            {"fecha": "2023-09", "a_b": 19078.46, "sin": -670.3, "estr_a": 10096.54, "estr_b": 8981.92}, 
+            {"fecha": "2023-10", "a_b": 19661.11, "sin": -737.62, "estr_a": 10679.19, "estr_b": 8981.92}, 
+            {"fecha": "2023-11", "a_b": 19752.53, "sin": -1116.36, "estr_a": 10939.57, "estr_b": 8812.96}, 
+            {"fecha": "2023-12", "a_b": 19319.19, "sin": -717.86, "estr_a": 10506.23, "estr_b": 8812.96}, 
+            {"fecha": "2024-01", "a_b": 19079.94, "sin": -359.99, "estr_a": 10409.59, "estr_b": 8670.34}, 
+            {"fecha": "2024-02", "a_b": 18685.5, "sin": -1136.34, "estr_a": 10388.11, "estr_b": 8297.38}, 
+            {"fecha": "2024-03", "a_b": 18003.66, "sin": -1301.39, "estr_a": 10138.1, "estr_b": 7865.56}, 
+            {"fecha": "2024-04", "a_b": 18475.26, "sin": -193.99, "estr_a": 10009.13, "estr_b": 8466.13}, 
+            {"fecha": "2024-05", "a_b": 18481.48, "sin": 699.56, "estr_a": 10031.8, "estr_b": 8449.68}, 
+            {"fecha": "2024-06", "a_b": 18440.93, "sin": 825.97, "estr_a": 10225.41, "estr_b": 8215.52}, 
+            {"fecha": "2024-07", "a_b": 18388.47, "sin": -53.49, "estr_a": 10478.11, "estr_b": 7910.36}, 
+            {"fecha": "2024-08", "a_b": 20463.2, "sin": -715.33, "estr_a": 11275.4, "estr_b": 9187.8}, 
+            {"fecha": "2024-09", "a_b": 20331.56, "sin": -902.61, "estr_a": 11120.1, "estr_b": 9211.47}, 
+            {"fecha": "2024-10", "a_b": 21370.86, "sin": -616.85, "estr_a": 11457.14, "estr_b": 9913.72}, 
+            {"fecha": "2024-11", "a_b": 21234.81, "sin": -868.88, "estr_a": 11718.83, "estr_b": 9515.98}, 
+            {"fecha": "2024-12", "a_b": 20955.0, "sin": -573.49, "estr_a": 11854.74, "estr_b": 9100.26}, 
+            {"fecha": "2025-01", "a_b": 20934.72, "sin": -638.99, "estr_a": 12101.18, "estr_b": 8833.54}, 
+            {"fecha": "2025-02", "a_b": 22020.41, "sin": 572.07, "estr_a": 11868.02, "estr_b": 10152.4}, 
+            {"fecha": "2025-03", "a_b": 21707.77, "sin": 204.77, "estr_a": 11859.78, "estr_b": 9847.99}, 
+            {"fecha": "2025-04", "a_b": 21181.87, "sin": 147.91, "estr_a": 13399.39, "estr_b": 7782.48}, 
+            {"fecha": "2025-05", "a_b": 23336.49, "sin": 1909.74, "estr_a": 13039.72, "estr_b": 10296.77}, 
+            {"fecha": "2025-06", "a_b": 23475.41, "sin": 2110.52, "estr_a": 13360.19, "estr_b": 10115.22}, 
+            {"fecha": "2025-07", "a_b": 23392.44, "sin": 2793.62, "estr_a": 13277.22, "estr_b": 10115.22}, 
+            {"fecha": "2025-08", "a_b": 23789.31, "sin": 2484.91, "estr_a": 13674.09, "estr_b": 10115.22}, 
+            {"fecha": "2025-09", "a_b": 23267.36, "sin": 2383.2, "estr_a": 13429.55, "estr_b": 9837.81}, 
+            {"fecha": "2025-10", "a_b": 23411.18, "sin": 2427.93, "estr_a": 14057.43, "estr_b": 9353.75}, 
+            {"fecha": "2025-11", "a_b": 22915.71, "sin": 1977.14, "estr_a": 13734.48, "estr_b": 9181.24}, 
+            {"fecha": "2025-12", "a_b": 23298.02, "sin": 1856.1, "estr_a": 13737.74, "estr_b": 9560.28}, 
+            {"fecha": "2026-01", "a_b": 22969.65, "sin": 1858.74, "estr_a": 13566.85, "estr_b": 9402.8}, 
+            {"fecha": "2026-02", "a_b": 22884.09, "sin": 2868.63, "estr_a": 13481.29, "estr_b": 9402.8}, 
+            {"fecha": "2026-03", "a_b": 23729.54, "sin": 2633.97, "estr_a": 14162.2, "estr_b": 9567.34}, 
+            {"fecha": "2026-04", "a_b": 24721.05, "sin": 3083.2, "estr_a": 14086.63, "estr_b": 10634.43}
+        ];
+
+        const yearlyMetrics = {
+            "Todos": { totalProfit: "24,721.05", profitFactor: "1.61", winRate: "21.39%", maxDrawdown: "-8.4%", efficiencyBoost: "+801.8%", bestTrade: "+19.75%", worstTrade: "-5.80%", avgWin: "+2.30%", avgLoss: "-1.00%", dias: "1,323" },
+            "2021": { totalProfit: "523.13", profitFactor: "1.07", winRate: "19.44%", maxDrawdown: "-7.9%", efficiencyBoost: "-28.1%", bestTrade: "+5.10%", worstTrade: "-3.07%", avgWin: "+1.60%", avgLoss: "-0.82%", dias: "252" },
+            "2022": { totalProfit: "14,891.12", profitFactor: "2.78", winRate: "28.29%", maxDrawdown: "-3.2%", efficiencyBoost: "+2492.7%", bestTrade: "+19.75%", worstTrade: "-4.88%", avgWin: "+3.27%", avgLoss: "-1.47%", dias: "251" },
+            "2023": { totalProfit: "3,904.94", profitFactor: "1.58", winRate: "22.00%", maxDrawdown: "-3.7%", efficiencyBoost: "+713.3%", bestTrade: "+9.33%", worstTrade: "-4.19%", avgWin: "+1.93%", avgLoss: "-0.90%", dias: "250" },
+            "2024": { totalProfit: "1,635.81", profitFactor: "1.24", winRate: "19.84%", maxDrawdown: "-6.1%", efficiencyBoost: "+1133.1%", bestTrade: "+15.00%", worstTrade: "-3.48%", avgWin: "+1.70%", avgLoss: "-0.86%", dias: "247" },
+            "2025": { totalProfit: "2,343.01", profitFactor: "1.26", winRate: "17.20%", maxDrawdown: "-6.5%", efficiencyBoost: "+96.4%", bestTrade: "+12.95%", worstTrade: "-5.80%", avgWin: "+2.63%", avgLoss: "-1.15%", dias: "250" },
+            "2026": { totalProfit: "1,423.04", profitFactor: "1.60", winRate: "21.92%", maxDrawdown: "-2.5%", efficiencyBoost: "+116.0%", bestTrade: "+10.10%", worstTrade: "-3.88%", avgWin: "+2.37%", avgLoss: "-0.88%", dias: "73" }
+        };
+
+        const yearsOptions = ['Todos', '2021', '2022', '2023', '2024', '2025', '2026'];
+        let selectedYear = 'Todos';
+        let mainChartInstance = null;
+        let pnlChartInstance = null;
+
+        // ELEMENTOS DEL DOM
+        const elFilterContainer = document.getElementById('filter-container');
+        
+        function init() {
+            renderFilters();
+            updateDashboard();
+        }
+
+        // RENDERIZAR BOTONES DE FILTRO
+        function renderFilters() {
+            elFilterContainer.innerHTML = '';
+            yearsOptions.forEach(year => {
+                const btn = document.createElement('button');
+                btn.textContent = year;
+                btn.className = `px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 ${
+                    selectedYear === year 
+                    ? 'bg-indigo-600 text-white shadow-md' 
+                    : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                }`;
+                btn.onclick = () => {
+                    selectedYear = year;
+                    renderFilters(); // Re-render botones para actualizar clase activa
+                    updateDashboard(); // Actualizar datos
+                };
+                elFilterContainer.appendChild(btn);
+            });
+        }
+
+        // ACTUALIZAR TODOS LOS VALORES Y GRÁFICAS
+        function updateDashboard() {
+            const metrics = yearlyMetrics[selectedYear];
+
+            // 1. Textos y Headers
+            document.getElementById('header-subtitle').textContent = `Dashboard Realizado con Historial Completo • 2021-2026 • ${metrics.dias} Días Operativos`;
+            
+            // 2. KPI Cards
+            document.getElementById('lbl-beneficio').textContent = `Beneficio (${selectedYear})`;
+            document.getElementById('val-beneficio').textContent = selectedYear === 'Todos' ? `$${metrics.totalProfit}` : metrics.totalProfit;
+            
+            const subBeneficio = document.getElementById('sub-beneficio');
+            subBeneficio.textContent = `${metrics.efficiencyBoost} vs Sin Estrategia`;
+            subBeneficio.className = `text-xs mt-2 flex items-center ${metrics.efficiencyBoost.includes('+') ? 'text-emerald-600' : 'text-slate-400'}`;
+
+            document.getElementById('val-profit-factor').textContent = metrics.profitFactor;
+            document.getElementById('val-win-rate').textContent = metrics.winRate;
+            document.getElementById('val-drawdown').textContent = metrics.maxDrawdown;
+
+            // 3. Badges
+            document.getElementById('val-best-trade').textContent = metrics.bestTrade;
+            document.getElementById('val-avg-win').textContent = metrics.avgWin;
+            document.getElementById('val-worst-trade').textContent = metrics.worstTrade;
+            document.getElementById('val-avg-loss').textContent = metrics.avgLoss;
+
+            // 4. Configurar Gráficas
+            document.getElementById('title-main-chart').textContent = `Curva de Equidad Acumulada ${selectedYear !== 'Todos' ? `(${selectedYear})` : 'Real'}`;
+            document.getElementById('title-pnl-chart').textContent = `Retorno Neto Mensual • ${selectedYear === 'Todos' ? 'Últimos 12 Meses' : `Año ${selectedYear}`}`;
+
+            // Filtrado de Datos
+            let filteredChartData = rawData;
+            let pnlDataRaw = [];
+
+            // Calculo de PnL en base a Todo el rawData
+            for (let i = 1; i < rawData.length; i++) {
+                pnlDataRaw.push({
+                    fecha: rawData[i].fecha,
+                    pnl: rawData[i].a_b - rawData[i-1].a_b
+                });
+            }
+
+            let filteredPnlData = [];
+
+            if (selectedYear !== 'Todos') {
+                filteredChartData = rawData.filter(item => item.fecha.startsWith(selectedYear));
+                filteredPnlData = pnlDataRaw.filter(item => item.fecha.startsWith(selectedYear));
+            } else {
+                filteredPnlData = pnlDataRaw.slice(-12);
+            }
+
+            renderMainChart(filteredChartData);
+            renderPnlChart(filteredPnlData);
+        }
+
+        function renderMainChart(data) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            if (mainChartInstance) {
+                mainChartInstance.destroy();
+            }
+
+            const labels = data.map(d => d.fecha);
+            
+            // Degradado para A+B
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.15)'); // Indigo 600 con opacidad
+            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+            mainChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'A+B',
+                            data: data.map(d => d.a_b),
+                            borderColor: '#4f46e5', // Indigo 600
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            fill: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Estrategia A',
+                            data: data.map(d => d.estr_a),
+                            borderColor: '#10b981', // Emerald 500
+                            borderWidth: 2,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Estrategia B',
+                            data: data.map(d => d.estr_b),
+                            borderColor: '#f59e0b', // Amber 500
+                            borderWidth: 2,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Sin Estrategia',
+                            data: data.map(d => d.sin),
+                            borderColor: '#94a3b8', // Slate 400
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'white',
+                            titleColor: '#475569',
+                            bodyColor: '#0f172a',
+                            borderColor: '#f1f5f9',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 4,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 11 },
+                                maxTicksLimit: 12
+                            },
+                            border: { display: false }
+                        },
+                        y: {
+                            grid: {
+                                color: '#f1f5f9',
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return '$' + Math.round(value/1000) + 'k';
+                                }
+                            },
+                            border: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPnlChart(data) {
+            const ctx = document.getElementById('pnlChart').getContext('2d');
+            
+            if (pnlChartInstance) {
+                pnlChartInstance.destroy();
+            }
+
+            const labels = data.map(d => d.fecha);
+            const pnlValues = data.map(d => d.pnl);
+            
+            // Colores condicionales: verde positivo, rojo negativo
+            const backgroundColors = pnlValues.map(v => v >= 0 ? '#10b981' : '#f43f5e');
+
+            pnlChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'P&L Neto',
+                        data: pnlValues,
+                        backgroundColor: backgroundColors,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Hace la barra horizontal
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'white',
+                            titleColor: '#475569',
+                            bodyColor: '#0f172a',
+                            borderColor: '#f1f5f9',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'P&L Neto: $' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#f1f5f9' },
+                            border: { display: false },
+                            display: false // Oculta el eje X en el gráfico horizontal
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 10 }
+                            },
+                            border: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Ejecutar inicialización
+        init();
+
+    </script>
+</body>
+</html>
