@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAP Investor PRO - Dashboard en Vivo</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        .chart-container { position: relative; height: 400px; width: 100%; }
+        @media (max-width: 768px) { .chart-container { height: 300px; } }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 1000;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+
+    <div id="loader" class="loading-overlay">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+        <p class="text-slate-600 font-bold">Sincronizando con Google Sheets...</p>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg shadow-lg">
+                    <i data-lucide="trending-up" class="text-white w-6 h-6"></i>
+                </div>
+                GAP INVESTOR <span class="text-indigo-600 font-light">PRO</span>
+            </h1>
+            <p class="text-slate-500 mt-1" id="header-subtitle">Conectado a Base de Datos en Tiempo Real</p>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100" id="filter-container">
+            </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1" id="lbl-beneficio">Beneficio Total</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-beneficio">$0.00</h3>
+                <p class="text-xs mt-2 font-bold text-emerald-600" id="sub-beneficio">+0% vs Sin Estrategia</p>
+            </div>
+            <div class="p-3 rounded-xl bg-emerald-500 shadow-lg shadow-emerald-200">
+                <i data-lucide="arrow-up-right" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1">Profit Factor</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-profit-factor">0.00</h3>
+                <p class="text-xs mt-2 text-slate-400">Ventaja Estadística</p>
+            </div>
+            <div class="p-3 rounded-xl bg-indigo-500 shadow-lg shadow-indigo-200">
+                <i data-lucide="activity" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1">Win Rate</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-win-rate">0%</h3>
+                <p class="text-xs mt-2 text-slate-400">Consistencia Operativa</p>
+            </div>
+            <div class="p-3 rounded-xl bg-amber-500 shadow-lg shadow-amber-200">
+                <i data-lucide="target" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+            <div>
+                <p class="text-slate-500 text-sm font-medium mb-1">Max Drawdown</p>
+                <h3 class="text-2xl font-bold text-slate-900" id="val-drawdown">0%</h3>
+                <p class="text-xs mt-2 text-slate-400">Riesgo Histórico Máx</p>
+            </div>
+            <div class="p-3 rounded-xl bg-rose-500 shadow-lg shadow-rose-200">
+                <i data-lucide="alert-triangle" class="text-white w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto flex flex-wrap gap-4 mb-6">
+        <div class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm w-full sm:w-auto">
+            <i data-lucide="trending-up" class="w-4 h-4"></i> Mejor Operación: <span id="val-best-trade">0%</span>
+        </div>
+        <div class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm w-full sm:w-auto">
+            <i data-lucide="arrow-up-right" class="w-4 h-4"></i> Ganancia Promedio: <span id="val-avg-win">0%</span>
+        </div>
+        <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm w-full sm:w-auto">
+            <i data-lucide="trending-down" class="w-4 h-4"></i> Peor Operación: <span id="val-worst-trade">0%</span>
+        </div>
+        <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm w-full sm:w-auto">
+            <i data-lucide="arrow-down-right" class="w-4 h-4"></i> Pérdida Promedio: <span id="val-avg-loss">0%</span>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h3 class="font-bold text-lg text-slate-800" id="title-equity">Curva de Equidad Acumulada</h3>
+                <div class="flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <div class="flex items-center gap-1"><span class="w-3 h-1 bg-indigo-600 rounded"></span> A+B</div>
+                    <div class="flex items-center gap-1"><span class="w-3 h-1 bg-emerald-500 rounded"></span> Estr. A</div>
+                    <div class="flex items-center gap-1"><span class="w-3 h-1 bg-amber-500 rounded"></span> Estr. B</div>
+                    <div class="flex items-center gap-1"><span class="w-3 h-1 border-b border-dashed border-slate-400"></span> Sin Estr.</div>
+                </div>
+            </div>
+            <div class="chart-container"><canvas id="equityChart"></canvas></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <h3 class="font-bold text-lg text-slate-800 mb-1">Resultados Mensuales (P&L)</h3>
+            <p class="text-slate-400 text-xs mb-6" id="pnl-subtitle">Rendimiento Neto del Periodo</p>
+            <div class="chart-container" style="height: 350px;"><canvas id="pnlChart"></canvas></div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN INICIAL
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrMIJ2K0UHwcHBi4R4RxZ5I86wpkP4GF8-t0ogmlZRnbSwclXCzp4VerwDmjotPU-GrmjGeER6sQ70/pub?gid=91498703&single=true&output=csv';
+        const CAPITAL_BASE = 10000;
+        const REF_PEAK = 24909.97;
+
+        let rawDailyData = [];
+        let monthlyData = [];
+        let yearlyMetrics = {};
+        let selectedYear = 'Todos';
+        let equityChart, pnlChart;
+
+        // INICIAR
+        window.onload = function() {
+            lucide.createIcons();
+            cargarDatos();
+        };
+
+        function cargarDatos() {
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    procesarDatos(results.data);
+                    document.getElementById('loader').style.display = 'none';
+                }
+            });
+        }
+
+        function procesarDatos(data) {
+            rawDailyData = data.filter(r => r.FECHA);
+            let cumAB = 0, cumSin = 0, cumA = 0, cumB = 0;
+            let monthMap = {};
+
+            rawDailyData.forEach(row => {
+                cumAB += (row['A + B'] || 0);
+                cumSin += (row['SIN ESTRATEGIA'] || 0);
+                cumA += (row['ESTRATEGIA A'] || 0);
+                cumB += (row['ESTRATEGIA B'] || 0);
+
+                let mesKey = String(row.FECHA).substring(0, 7);
+                monthMap[mesKey] = { fecha: mesKey, a_b: cumAB, sin: cumSin, estr_a: cumA, estr_b: cumB };
+            });
+
+            monthlyData = Object.values(monthMap).sort((a,b) => a.fecha.localeCompare(b.fecha));
+            
+            // Generar botones de años dinámicamente
+            const years = ['Todos', ...new Set(rawDailyData.map(d => String(d.FECHA).substring(0, 4)))].sort();
+            renderButtons(years);
+            
+            updateDashboard();
+        }
+
+        function renderButtons(years) {
+            const container = document.getElementById('filter-container');
+            container.innerHTML = '';
+            years.forEach(year => {
+                const btn = document.createElement('button');
+                btn.textContent = year;
+                btn.className = `px-4 py-2 text-sm font-bold rounded-xl transition-all ${selectedYear === year ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`;
+                btn.onclick = () => { selectedYear = year; renderButtons(years); updateDashboard(); };
+                container.appendChild(btn);
+            });
+        }
+
+        function updateDashboard() {
+            const filtrados = selectedYear === 'Todos' ? rawDailyData : rawDailyData.filter(d => String(d.FECHA).startsWith(selectedYear));
+            const metrics = calcularMetricas(filtrados);
+
+            // Actualizar DOM
+            document.getElementById('header-subtitle').textContent = `Dashboard Actualizado • ${filtrados.length} Días Operativos Analizados`;
+            document.getElementById('val-beneficio').textContent = `$${metrics.totalProfit.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+            document.getElementById('sub-beneficio').textContent = `${metrics.effBoost >= 0 ? '+' : ''}${metrics.effBoost.toFixed(1)}% vs Sin Estrategia`;
+            document.getElementById('val-profit-factor').textContent = metrics.profitFactor.toFixed(2);
+            document.getElementById('val-win-rate').textContent = `${metrics.winRate.toFixed(1)}%`;
+            document.getElementById('val-drawdown').textContent = `${metrics.mdd.toFixed(1)}%`;
+            document.getElementById('val-best-trade').textContent = `+${metrics.best.toFixed(2)}%`;
+            document.getElementById('val-worst-trade').textContent = `${metrics.worst.toFixed(2)}%`;
+            document.getElementById('val-avg-win').textContent = `+${metrics.avgWin.toFixed(2)}%`;
+            document.getElementById('val-avg-loss').textContent = `${metrics.avgLoss.toFixed(2)}%`;
+
+            dibujarGraficas();
+        }
+
+        function calcularMetricas(data) {
+            let profit = 0, profitSin = 0, wins = 0, gains = 0, losses = 0, best = -Infinity, worst = Infinity;
+            let cum = 0, peak = 0, mddAbs = 0, nWins = 0, nLosses = 0;
+
+            data.forEach(r => {
+                let val = r['A + B'] || 0;
+                profit += val;
+                profitSin += (r['SIN ESTRATEGIA'] || 0);
+                
+                if(val > 0) { wins++; gains += val; nWins++; }
+                if(val < 0) { losses += Math.abs(val); nLosses++; }
+                
+                if(val > best) best = val;
+                if(val < worst) worst = val;
+
+                // Drawdown calculation
+                cum += val;
+                if(cum > peak) peak = cum;
+                let dd = cum - peak;
+                if(dd < mddAbs) mddAbs = dd;
+            });
+
+            return {
+                totalProfit: profit,
+                winRate: (wins / data.length) * 100,
+                profitFactor: losses !== 0 ? (gains / losses) : 0,
+                effBoost: profitSin !== 0 ? (profit / profitSin * 100) : 0,
+                mdd: (mddAbs / REF_PEAK) * 100,
+                best: (best / CAPITAL_BASE) * 100,
+                worst: (worst / CAPITAL_BASE) * 100,
+                avgWin: nWins > 0 ? (gains / nWins / CAPITAL_BASE * 100) : 0,
+                avgLoss: nLosses > 0 ? (-losses / nLosses / CAPITAL_BASE * 100) : 0
+            };
+        }
+
+        function dibujarGraficas() {
+            // Data para Equity
+            const equityFiltered = selectedYear === 'Todos' ? monthlyData : monthlyData.filter(d => d.fecha.startsWith(selectedYear));
+            
+            if(equityChart) equityChart.destroy();
+            const ctxE = document.getElementById('equityChart').getContext('2d');
+            equityChart = new Chart(ctxE, {
+                type: 'line',
+                data: {
+                    labels: equityFiltered.map(d => d.fecha),
+                    datasets: [
+                        { label: 'A+B', data: equityFiltered.map(d => d.a_b), borderColor: '#4f46e5', borderWidth: 3, fill: true, backgroundColor: 'rgba(79, 70, 229, 0.05)', tension: 0.3, pointRadius: 0 },
+                        { label: 'A', data: equityFiltered.map(d => d.estr_a), borderColor: '#10b981', borderWidth: 1.5, tension: 0.3, pointRadius: 0 },
+                        { label: 'B', data: equityFiltered.map(d => d.estr_b), borderColor: '#f59e0b', borderWidth: 1.5, tension: 0.3, pointRadius: 0 },
+                        { label: 'Sin', data: equityFiltered.map(d => d.sin), borderColor: '#94a3b8', borderDash: [5,5], pointRadius: 0 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => '$' + v/1000 + 'k' } } } }
+            });
+
+            // Data para P&L
+            let pnlRaw = [];
+            for(let i=1; i<monthlyData.length; i++) {
+                pnlRaw.push({ fecha: monthlyData[i].fecha, pnl: monthlyData[i].a_b - monthlyData[i-1].a_b });
+            }
+            const pnlFiltered = selectedYear === 'Todos' ? pnlRaw.slice(-12) : pnlRaw.filter(d => d.fecha.startsWith(selectedYear));
+
+            if(pnlChart) pnlChart.destroy();
+            const ctxP = document.getElementById('pnlChart').getContext('2d');
+            pnlChart = new Chart(ctxP, {
+                type: 'bar',
+                data: {
+                    labels: pnlFiltered.map(d => d.fecha),
+                    datasets: [{
+                        data: pnlFiltered.map(d => d.pnl),
+                        backgroundColor: pnlFiltered.map(d => d.pnl >= 0 ? '#10b981' : '#f43f5e'),
+                        borderRadius: 5
+                    }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+    </script>
+</body>
+</html>
