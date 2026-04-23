@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAP Investor PRO - Dashboard en Vivo</title>
+    
+    <!-- Librerías Externas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Librería PapaParse para leer CSV desde Google Sheets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        .chart-container { position: relative; height: 400px; width: 100%; }
+        @media (max-width: 768px) { .chart-container { height: 300px; } }
+        /* Estilos para la pantalla de carga */
+        #loader {
+            position: fixed; inset: 0; z-index: 50;
+            background-color: rgba(248, 250, 252, 0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+
+    <!-- PANTALLA DE CARGA -->
+    <div id="loader">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 mb-4"></div>
+        <h2 class="text-xl font-bold text-slate-800">Sincronizando Base de Datos...</h2>
+        <p class="text-slate-500 text-sm mt-2">Conectando con Google Sheets</p>
+    </div>
+
+    <!-- HEADER -->
+    <div class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-6">
+            <div>
+                <h1 class="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                    <div class="bg-indigo-600 p-2 rounded-lg shadow-lg">
+                        <i data-lucide="trending-up" class="text-white w-6 h-6"></i>
+                    </div>
+                    GAP INVESTOR <span class="text-indigo-600 font-light">PRO</span>
+                </h1>
+                <p class="text-slate-500 mt-1" id="header-subtitle">Conectando con el servidor...</p>
+            </div>
+        </div>
+        
+        <!-- Controles Superiores: Filtros de Año -->
+        <div class="flex flex-col items-end gap-3">
+            <div class="flex flex-wrap gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100 hidden" id="filter-container">
+                <!-- Botones generados por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL DEL DASHBOARD (Oculto hasta que carguen los datos) -->
+    <div id="dashboard-content" class="hidden opacity-0 transition-opacity duration-500">
+        <!-- TARJETAS KPI PRINCIPALES -->
+        <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm font-medium mb-1" id="lbl-beneficio">Beneficio Total</p>
+                    <h3 class="text-2xl font-bold text-slate-900" id="val-beneficio">$0.00</h3>
+                    <p class="text-xs mt-2 font-bold text-emerald-600" id="sub-beneficio">+0% vs Sin Estrategia</p>
+                </div>
+                <div class="p-3 rounded-xl bg-emerald-500 shadow-lg shadow-emerald-200">
+                    <i data-lucide="arrow-up-right" class="text-white w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm font-medium mb-1">Profit Factor</p>
+                    <h3 class="text-2xl font-bold text-slate-900" id="val-profit-factor">0.00</h3>
+                    <p class="text-xs mt-2 text-slate-400">Ventaja Estadística</p>
+                </div>
+                <div class="p-3 rounded-xl bg-indigo-500 shadow-lg shadow-indigo-200">
+                    <i data-lucide="activity" class="text-white w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm font-medium mb-1">Win Rate</p>
+                    <h3 class="text-2xl font-bold text-slate-900" id="val-win-rate">0%</h3>
+                    <p class="text-xs mt-2 text-slate-400">Consistencia Operativa</p>
+                </div>
+                <div class="p-3 rounded-xl bg-amber-500 shadow-lg shadow-amber-200">
+                    <i data-lucide="target" class="text-white w-5 h-5"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between">
+                <div>
+                    <p class="text-slate-500 text-sm font-medium mb-1">Max Drawdown</p>
+                    <h3 class="text-2xl font-bold text-slate-900" id="val-drawdown">0%</h3>
+                    <p class="text-xs mt-2 text-slate-400">Riesgo Histórico Máx</p>
+                </div>
+                <div class="p-3 rounded-xl bg-rose-500 shadow-lg shadow-rose-200">
+                    <i data-lucide="alert-triangle" class="text-white w-5 h-5"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- INSIGNIAS DE RENDIMIENTO DETALLADO -->
+        <div class="max-w-7xl mx-auto flex flex-wrap gap-4 mb-6">
+            <div class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm w-full sm:w-auto justify-center">
+                <i data-lucide="trending-up" class="w-4 h-4"></i> Mejor Operación: <span id="val-best-trade">0%</span>
+            </div>
+            <div class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-200 shadow-sm w-full sm:w-auto justify-center">
+                <i data-lucide="arrow-up-right" class="w-4 h-4"></i> Ganancia Promedio: <span id="val-avg-win">0%</span>
+            </div>
+            <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm w-full sm:w-auto justify-center">
+                <i data-lucide="trending-down" class="w-4 h-4"></i> Peor Operación: <span id="val-worst-trade">0%</span>
+            </div>
+            <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border border-rose-200 shadow-sm w-full sm:w-auto justify-center">
+                <i data-lucide="arrow-down-right" class="w-4 h-4"></i> Pérdida Promedio: <span id="val-avg-loss">0%</span>
+            </div>
+        </div>
+
+        <!-- GRÁFICAS -->
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h3 class="font-bold text-lg text-slate-800" id="title-equity">Curva de Equidad Acumulada</h3>
+                    <div class="flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <div class="flex items-center gap-1"><span class="w-3 h-1 bg-indigo-600 rounded"></span> A+B</div>
+                        <div class="flex items-center gap-1"><span class="w-3 h-1 bg-emerald-500 rounded"></span> Estr. A</div>
+                        <div class="flex items-center gap-1"><span class="w-3 h-1 bg-amber-500 rounded"></span> Estr. B</div>
+                        <div class="flex items-center gap-1"><span class="w-3 h-1 border-b border-dashed border-slate-400"></span> Sin Estr.</div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="equityChart"></canvas></div>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                <h3 class="font-bold text-lg text-slate-800 mb-1">Ganancias y Pérdidas (P&L)</h3>
+                <p class="text-slate-400 text-xs mb-6" id="pnl-subtitle">Retorno Neto Mensual</p>
+                <div class="chart-container" style="height: 350px;"><canvas id="pnlChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN CENTRAL
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrMIJ2K0UHwcHBi4R4RxZ5I86wpkP4GF8-t0ogmlZRnbSwclXCzp4VerwDmjotPU-GrmjGeER6sQ70/pub?gid=91498703&single=true&output=csv';
+        const CAPITAL_BASE = 10000;
+        const REF_PEAK = 24909.97;
+
+        let rawDailyData = [];
+        let monthlyData = [];
+        let yearlyMetrics = {};
+        let yearsOptions = ['Todos'];
+        let selectedYear = 'Todos';
+        let equityChart, pnlChart;
+
+        // INICIALIZACIÓN
+        window.onload = function() {
+            lucide.createIcons();
+            cargarDatosDesdeGoogle();
+        };
+
+        // 1. DESCARGA AUTOMÁTICA DESDE GOOGLE SHEETS
+        function cargarDatosDesdeGoogle() {
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if(results.data && results.data.length > 0) {
+                        procesarMotorMatematico(results.data);
+                        
+                        // Ocultar loader y mostrar dashboard
+                        const loader = document.getElementById('loader');
+                        const dashboard = document.getElementById('dashboard-content');
+                        
+                        loader.style.opacity = '0';
+                        setTimeout(() => {
+                            loader.style.display = 'none';
+                            dashboard.classList.remove('hidden');
+                            setTimeout(() => dashboard.classList.remove('opacity-0'), 50);
+                            document.getElementById('filter-container').classList.remove('hidden');
+                        }, 500);
+                    }
+                },
+                error: function(err) {
+                    console.error("Error cargando datos:", err);
+                    document.getElementById('header-subtitle').innerHTML = '<span class="text-rose-500 font-bold">Error de conexión local (CORS). Sube este archivo a tu Web Hosting para que funcione.</span>';
+                    document.getElementById('loader').style.display = 'none';
+                }
+            });
+        }
+
+        // 2. MOTOR MATEMÁTICO
+        function procesarMotorMatematico(datosDiarios) {
+            let cumAB = 0, cumSin = 0, cumA = 0, cumB = 0;
+            let monthMap = {};
+            rawDailyData = [];
+            let yearsSet = new Set();
+
+            datosDiarios.forEach(row => {
+                // Validar que exista la fecha
+                if (!row.FECHA) return;
+
+                let valAB = parseFloat(row['A + B']) || 0;
+                let valSin = parseFloat(row['SIN ESTRATEGIA']) || 0;
+                let valA = parseFloat(row['ESTRATEGIA A']) || 0;
+                let valB = parseFloat(row['ESTRATEGIA B']) || 0;
+
+                // Guardar registro limpio
+                let fechaStr = String(row.FECHA).trim();
+                rawDailyData.push({
+                    FECHA: fechaStr,
+                    'A + B': valAB,
+                    'SIN ESTRATEGIA': valSin,
+                    'ESTRATEGIA A': valA,
+                    'ESTRATEGIA B': valB
+                });
+
+                // Acumulados
+                cumAB += valAB; cumSin += valSin; cumA += valA; cumB += valB;
+
+                // Extraer Año y Mes (Formatos comunes: "2021-01-04" o "04/01/2021")
+                let mesKey = "";
+                let yearStr = "";
+                
+                if (fechaStr.includes('/')) {
+                    // Si viene como DD/MM/YYYY o MM/DD/YYYY
+                    let parts = fechaStr.split('/');
+                    if (parts[2] && parts[2].length === 4) {
+                        yearStr = parts[2];
+                        mesKey = `${yearStr}-${parts[1].padStart(2, '0')}`;
+                    }
+                } else if (fechaStr.length >= 7) {
+                    // Formato ISO: YYYY-MM-DD
+                    yearStr = fechaStr.substring(0, 4);
+                    mesKey = fechaStr.substring(0, 7);
+                }
+
+                if(yearStr && yearStr.length === 4 && !isNaN(yearStr)) yearsSet.add(yearStr);
+
+                // Sobrescribimos en el mapa para quedarnos siempre con el acumulado del ÚLTIMO día hábil del mes
+                if(mesKey) {
+                    monthMap[mesKey] = { fecha: mesKey, a_b: cumAB, sin: cumSin, estr_a: cumA, estr_b: cumB };
+                }
+            });
+
+            // Ordenamos los meses cronológicamente
+            monthlyData = Object.values(monthMap).sort((a,b) => a.fecha.localeCompare(b.fecha));
+            
+            // Generar botones de años dinámicos
+            yearsOptions = ['Todos', ...Array.from(yearsSet)].sort();
+            
+            // Pre-calcular KPIs por año
+            yearsOptions.forEach(y => {
+                let dFiltered = y === 'Todos' ? rawDailyData : rawDailyData.filter(d => d.FECHA.includes(y));
+                yearlyMetrics[y] = calcularKPIs(dFiltered);
+            });
+
+            selectedYear = 'Todos';
+            renderFilters();
+            updateDashboard();
+        }
+
+        // 3. FÓRMULAS DE TRADING INSTITUCIONAL
+        function calcularKPIs(dataArr) {
+            if(dataArr.length === 0) return { totalProfit:"0", profitFactor:"0", winRate:"0", maxDrawdown:"0", efficiencyBoost:"0", bestTrade:"0", worstTrade:"0", avgWin:"0", avgLoss:"0", dias:"0" };
+            
+            let totalAB = 0, totalSin = 0, wins = 0, gains = 0, losses = 0;
+            let bestTrade = -Infinity, worstTrade = Infinity, cum = 0, peak = 0, maxDrawdownAbs = 0;
+
+            dataArr.forEach(row => {
+                let ab = row['A + B'];
+                let sin = row['SIN ESTRATEGIA'];
+
+                totalAB += ab; totalSin += sin;
+
+                if(ab > 0) { wins++; gains += ab; }
+                if(ab < 0) { losses += Math.abs(ab); }
+
+                if(ab > bestTrade) bestTrade = ab;
+                if(ab < worstTrade) worstTrade = ab;
+
+                cum += ab;
+                if(cum > peak) peak = cum;
+                let dd = cum - peak;
+                if(dd < maxDrawdownAbs) maxDrawdownAbs = dd;
+            });
+
+            if(bestTrade === -Infinity) bestTrade = 0;
+            if(worstTrade === Infinity) worstTrade = 0;
+
+            let dias = dataArr.length;
+            let winRate = (wins / dias) * 100;
+            let profitFactor = losses !== 0 ? (gains / losses) : 0;
+            let effBoost = totalSin !== 0 ? (totalAB / totalSin) * 100 : 0;
+            
+            let avgWinVal = wins > 0 ? gains / wins : 0;
+            let lossesCount = dataArr.filter(r => r['A + B'] < 0).length;
+            let avgLossVal = lossesCount > 0 ? -losses / lossesCount : 0;
+
+            let mddPct = (maxDrawdownAbs / REF_PEAK) * 100;
+
+            return {
+                totalProfit: totalAB.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}),
+                profitFactor: profitFactor.toFixed(2),
+                winRate: winRate.toFixed(1) + '%',
+                maxDrawdown: mddPct.toFixed(1) + '%',
+                efficiencyBoost: (effBoost > 0 ? '+' : '') + effBoost.toFixed(1) + '%',
+                bestTrade: (bestTrade > 0 ? '+' : '') + ((bestTrade/CAPITAL_BASE)*100).toFixed(2) + '%',
+                worstTrade: ((worstTrade/CAPITAL_BASE)*100).toFixed(2) + '%',
+                avgWin: '+' + ((avgWinVal/CAPITAL_BASE)*100).toFixed(2) + '%',
+                avgLoss: ((avgLossVal/CAPITAL_BASE)*100).toFixed(2) + '%',
+                dias: dias.toLocaleString()
+            };
+        }
+
+        // 4. ACTUALIZACIÓN DE INTERFAZ
+        function renderFilters() {
+            const container = document.getElementById('filter-container');
+            container.innerHTML = '';
+            yearsOptions.forEach(year => {
+                const btn = document.createElement('button');
+                btn.textContent = year;
+                btn.className = `px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 ${
+                    selectedYear === year 
+                    ? 'bg-indigo-600 text-white shadow-md' 
+                    : 'bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                }`;
+                btn.onclick = () => {
+                    selectedYear = year;
+                    renderFilters();
+                    updateDashboard();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function updateDashboard() {
+            if(!yearlyMetrics[selectedYear]) return;
+            const metrics = yearlyMetrics[selectedYear];
+
+            // 1. Textos y Headers
+            document.getElementById('header-subtitle').textContent = `Conectado en Vivo • ${metrics.dias} Días Operativos Procesados`;
+            
+            // 2. KPI Cards
+            document.getElementById('lbl-beneficio').textContent = `Beneficio (${selectedYear})`;
+            document.getElementById('val-beneficio').textContent = `$${metrics.totalProfit}`;
+            
+            const subBeneficio = document.getElementById('sub-beneficio');
+            subBeneficio.textContent = `${metrics.efficiencyBoost} vs Sin Estrategia`;
+            subBeneficio.className = `text-xs mt-2 font-bold flex items-center ${metrics.efficiencyBoost.includes('+') ? 'text-emerald-600' : 'text-slate-400'}`;
+
+            document.getElementById('val-profit-factor').textContent = metrics.profitFactor;
+            document.getElementById('val-win-rate').textContent = metrics.winRate;
+            document.getElementById('val-drawdown').textContent = metrics.maxDrawdown;
+
+            // 3. Badges
+            document.getElementById('val-best-trade').textContent = metrics.bestTrade;
+            document.getElementById('val-avg-win').textContent = metrics.avgWin;
+            document.getElementById('val-worst-trade').textContent = metrics.worstTrade;
+            document.getElementById('val-avg-loss').textContent = metrics.avgLoss;
+
+            // 4. Configurar Gráficas
+            document.getElementById('title-equity').textContent = `Curva de Equidad Acumulada ${selectedYear !== 'Todos' ? `(${selectedYear})` : 'Real'}`;
+            document.getElementById('pnl-subtitle').textContent = `Retorno Neto Mensual • ${selectedYear === 'Todos' ? 'Últimos 12 Meses' : `Año ${selectedYear}`}`;
+
+            // Filtrado de Datos
+            let filteredChartData = monthlyData;
+            let pnlDataRaw = [];
+
+            // Calculo de PnL
+            for (let i = 1; i < monthlyData.length; i++) {
+                pnlDataRaw.push({
+                    fecha: monthlyData[i].fecha,
+                    pnl: monthlyData[i].a_b - monthlyData[i-1].a_b
+                });
+            }
+
+            let filteredPnlData = [];
+
+            if (selectedYear !== 'Todos') {
+                filteredChartData = monthlyData.filter(item => item.fecha.startsWith(selectedYear));
+                filteredPnlData = pnlDataRaw.filter(item => item.fecha.startsWith(selectedYear));
+            } else {
+                filteredPnlData = pnlDataRaw.slice(-12);
+            }
+
+            renderMainChart(filteredChartData);
+            renderPnlChart(filteredPnlData);
+        }
+
+        function renderMainChart(data) {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            
+            if (equityChart) equityChart.destroy();
+
+            const labels = data.map(d => d.fecha);
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.15)');
+            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'A+B', data: data.map(d => d.a_b), borderColor: '#4f46e5', backgroundColor: gradient, borderWidth: 3, fill: true, pointRadius: 0, pointHoverRadius: 4, tension: 0.3 },
+                        { label: 'Estrategia A', data: data.map(d => d.estr_a), borderColor: '#10b981', borderWidth: 2, fill: false, pointRadius: 0, pointHoverRadius: 4, tension: 0.3 },
+                        { label: 'Estrategia B', data: data.map(d => d.estr_b), borderColor: '#f59e0b', borderWidth: 2, fill: false, pointRadius: 0, pointHoverRadius: 4, tension: 0.3 },
+                        { label: 'Sin Estrategia', data: data.map(d => d.sin), borderColor: '#94a3b8', borderWidth: 2, borderDash: [5, 5], fill: false, pointRadius: 0, pointHoverRadius: 4, tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { backgroundColor: 'white', titleColor: '#475569', bodyColor: '#0f172a', borderColor: '#f1f5f9', borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) label += new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(context.parsed.y);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 }, maxTicksLimit: 12 }, border: { display: false } },
+                        y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { color: '#94a3b8', font: { size: 11 }, callback: function(value) { return '$' + Math.round(value/1000) + 'k'; } }, border: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderPnlChart(data) {
+            const ctx = document.getElementById('pnlChart').getContext('2d');
+            
+            if (pnlChart) pnlChart.destroy();
+
+            const labels = data.map(d => d.fecha);
+            const pnlValues = data.map(d => d.pnl);
+            
+            const backgroundColors = pnlValues.map(v => v >= 0 ? '#10b981' : '#f43f5e');
+
+            pnlChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'P&L Neto', data: pnlValues, backgroundColor: backgroundColors, borderRadius: 4 }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: 'white', titleColor: '#475569', bodyColor: '#0f172a', borderColor: '#f1f5f9', borderWidth: 1,
+                            callbacks: { label: function(context) { return 'P&L Neto: $' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(context.raw); } }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: '#f1f5f9' }, border: { display: false }, display: false },
+                        y: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } }, border: { display: false } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
