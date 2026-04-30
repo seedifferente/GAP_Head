@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GAP Investor PRO - Dashboard en Vivo</title>
     
+    <!-- Solución al error 404 del Favicon: Favicon dinámico (Emoji) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+    
     <!-- Librerías Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -55,7 +58,7 @@
         </div>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL DEL DASHBOARD (Oculto hasta que carguen los datos) -->
+    <!-- CONTENEDOR PRINCIPAL DEL DASHBOARD -->
     <div id="dashboard-content" class="hidden opacity-0 transition-opacity duration-500">
         <!-- TARJETAS KPI PRINCIPALES -->
         <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -145,7 +148,7 @@
 
     <script>
         // CONFIGURACIÓN CENTRAL
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrMIJ2K0UHwcHBi4R4RxZ5I86wpkP4GF8-t0ogmlZRnbSwclXCzp4VerwDmjotPU-GrmjGeER6sQ70/pub?gid=91498703&single=true&output=csv';
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrMIJ2K0UHwcHBi4R4RxZ5I86wpkP4GF8-t0ogmlZRnbSwclXCzp4VerwDmjotPU-GrmjGeER6sQ70/pub?gid=821833095&single=true&output=csv';
         const CAPITAL_BASE = 10000;
         const REF_PEAK = 24909.97;
 
@@ -171,6 +174,18 @@
                 skipEmptyLines: true,
                 complete: function(results) {
                     if(results.data && results.data.length > 0) {
+                        // --- NUEVO: Limpieza de nombres de columnas y validación ---
+                        const firstRowKeys = Object.keys(results.data[0]).map(key => key.trim());
+                        const requiredCols = ['FECHA', 'A + B', 'SIN ESTRATEGIA', 'ESTRATEGIA A', 'ESTRATEGIA B'];
+                        const missingCols = requiredCols.filter(col => !firstRowKeys.includes(col));
+
+                        if (missingCols.length > 0) {
+                            document.getElementById('header-subtitle').innerHTML = `<span class="text-rose-600 font-bold bg-rose-100 px-3 py-1 rounded-lg shadow-sm border border-rose-200">❌ Error Sheets: Faltan las columnas (${missingCols.join(', ')}). Revise los títulos.</span>`;
+                            document.getElementById('loader').style.display = 'none';
+                            console.error("Columnas encontradas en el CSV:", Object.keys(results.data[0]));
+                            return;
+                        }
+
                         procesarMotorMatematico(results.data);
                         
                         // Ocultar loader y mostrar dashboard
@@ -201,17 +216,33 @@
             rawDailyData = [];
             let yearsSet = new Set();
 
-            datosDiarios.forEach(row => {
-                // Validar que exista la fecha
-                if (!row.FECHA) return;
+            // --- NUEVO: Función súper robusta para leer números aunque tengan $, o comas ---
+            const parseNum = (val) => {
+                if (typeof val === 'number') return val;
+                if (!val) return 0;
+                // Quita todo lo que no sea número, punto o signo negativo
+                let cleanVal = String(val).replace(/[^0-9.-]+/g, ""); 
+                return parseFloat(cleanVal) || 0;
+            };
 
-                let valAB = parseFloat(row['A + B']) || 0;
-                let valSin = parseFloat(row['SIN ESTRATEGIA']) || 0;
-                let valA = parseFloat(row['ESTRATEGIA A']) || 0;
-                let valB = parseFloat(row['ESTRATEGIA B']) || 0;
+            datosDiarios.forEach(row => {
+                // --- NUEVO: Limpiamos los espacios accidentales de los nombres de las columnas ---
+                let cleanRow = {};
+                for (let key in row) {
+                    cleanRow[key.trim()] = row[key];
+                }
+
+                // Validar que exista la fecha
+                if (!cleanRow['FECHA']) return;
+
+                // Extraemos los valores usando el limpiador de números
+                let valAB = parseNum(cleanRow['A + B']);
+                let valSin = parseNum(cleanRow['SIN ESTRATEGIA']);
+                let valA = parseNum(cleanRow['ESTRATEGIA A']);
+                let valB = parseNum(cleanRow['ESTRATEGIA B']);
 
                 // Guardar registro limpio
-                let fechaStr = String(row.FECHA).trim();
+                let fechaStr = String(cleanRow['FECHA']).trim();
                 rawDailyData.push({
                     FECHA: fechaStr,
                     'A + B': valAB,
